@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>supersprint</title>
+  <script src="../jsgame0.js"></script>
+  <style type="text/css" media="screen">
+body {
+  background-color: white;
+  color: black;
+}
+.hidden {
+  display: none;
+}
+#original {
+  margin-left: 1em;
+}
+  </style>
+</head>
+
+<body>
+<section id="imageLoader" class="hidden">
+  <img class="hidden" src="images/car0.png" alt="car0">
+  <img class="hidden" src="images/car1.png" alt="car1">
+  <img class="hidden" src="images/car2.png" alt="car2">
+  <img class="hidden" src="images/car3.png" alt="car3">
+  <img class="hidden" src="images/guide1.png" alt="guide1">
+  <img class="hidden" src="images/guide2.png" alt="guide2">
+  <img class="hidden" src="images/track.png" alt="track">
+</section>
+
+<main>
+<h1>supersprint</h1>
+
+<canvas id="screen">
+The game screen appears here if your browser supports the Canvas API.
+</canvas>
+<section id="controls">
+  <button type="button" id="reset">Reset</button>
+  <button type="button" id="pause">Pause</button>
+</section>
+
+<h2>Attribution</h2>
+
+<p><a href="https://wireframe.raspberrypi.org/issues/21">Source Code: Recreate Super Sprint's top-down racing, pages 40-41, by Mark Vanstone</a>.</p>
+
+<p>Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode">Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported</a>.</p>
+
+<h2>Original Python code</h2>
+
+<pre id="original"><code>
+import math
+from random import randint
+from pygame import image, Color
+controlimage1 = image.load(&#x27;images/guide1.png&#x27;)
+controlimage2 = image.load(&#x27;images/guide2.png&#x27;)
+cars = []
+for c in range(4):
+    cars.append(Actor(&#x27;car&#x27;+str(c), center=(400, 70+(30*c))))
+    cars[c].speed = 0
+
+def draw():
+    screen.blit(&quot;track&quot;, (0, 0))
+    for c in range(4):
+        cars[c].draw()
+
+def update():
+    if keyboard.up: cars[0].speed += .15
+    if keyboard.down: cars[0].speed -= .15
+    if(cars[0].speed != 0):
+        if keyboard.left: cars[0].angle += 2
+        if keyboard.right: cars[0].angle -= 2
+    for c in range(4):
+        crash = False
+        for i in range(4):
+            if cars[c].collidepoint(cars[i].center) and c != i:
+                crash = True
+                cars[c].speed = -(randint(0,1)/10)
+        if crash:
+            newPos = calcNewXY(cars[c].center, 2, math.radians(randint(0,360)-cars[c].angle))
+        else:
+            newPos = calcNewXY(cars[c].center, cars[c].speed*2, math.radians(180-cars[c].angle))
+        if c == 0:
+            ccol = controlimage1.get_at((int(newPos[0]),int(newPos[1])))
+        else:
+            ccol = controlimage2.get_at((int(newPos[0]),int(newPos[1])))
+        if cars[c].speed != 0:
+            if ccol != Color(&#x27;blue&#x27;) and ccol != Color(&#x27;red&#x27;):
+                cars[c].center = newPos
+            else:
+                if c &gt; 0:
+                    if ccol == Color(&#x27;blue&#x27;):
+                        cars[c].angle += 5
+                    if ccol == Color(&#x27;red&#x27;):
+                        cars[c].angle -= 5
+                cars[c].speed = cars[c].speed/1.1
+        if c &gt; 0 and cars[c].speed &lt; 1.8+(c/10):
+            cars[c].speed += randint(0,1)/10
+            if crash:
+                cars[c].angle += ((ccol[1]-136)/136)*(2.8*cars[c].speed)
+            else:
+                cars[c].angle -= ((ccol[1]-136)/136)*(2.8*cars[c].speed)
+        else:
+            cars[c].speed = cars[c].speed/1.1
+
+
+def calcNewXY(xy,speed,ang):
+    newx = xy[0] - (speed*math.cos(ang))
+    newy = xy[1] - (speed*math.sin(ang))
+    return newx, newy
+</code></pre>
+</main>
+
+<script>
+var controlimage1, controlimage2, cars;
+
+function reset() {
+  screen.blit('guide1', [0, 0]);
+  controlimage1 = screen.getSurface();
+  screen.blit('guide2', [0, 0]);
+  controlimage2 = screen.getSurface();
+
+  cars = [];
+  for (let c = 0; c < 4; c++) {
+    let car = new Actor('car' + c);
+    car.center = [400, 70 + (30 * c)];
+    car.speed = 0;
+    cars.push(car);
+  }
+}
+
+function draw() {
+  screen.blit("track", [0, 0]);
+  for (let c of cars) {
+    c.draw();
+  }
+}
+
+/*
+ * Return a random integer N such that min <= N < max.
+ */
+function getRandomInteger(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor((Math.random() * (max - min)) + min);
+}
+
+function update() {
+  if (keyboard[keys.UP]) {
+    cars[0].speed += 0.15;
+  }
+  if (keyboard[keys.DOWN]) {
+    cars[0].speed -= 0.15;
+  }
+  if (cars[0].speed !== 0) {
+    if (keyboard[keys.LEFT]) {
+      cars[0].angle += 2;
+    }
+    if (keyboard[keys.RIGHT]) {
+      cars[0].angle -= 2;
+    }
+  }
+  for (let c = 0; c < 4; c++) {
+    let crash = false, newPos, ccol;
+    for (let i = 0; i < 4; i++) {
+      // Conditions are flipped because c !== i fails more often
+      if ((c !== i) && cars[c].collidepoint(cars[i].center)) {
+        crash = true;
+        cars[c].speed = -(getRandomInteger(0, 2) / 10);
+      }
+    }
+    if (crash) {
+      newPos = calcNewXY(cars[c].center, 2, (getRandomInteger(0, 361) - cars[c].angle) * Math.PI / 180);
+    }
+    else {
+      newPos = calcNewXY(cars[c].center, cars[c].speed * 2, (180 - cars[c].angle) * Math.PI / 180);
+    }
+    if (c === 0) {
+      ccol = controlimage1.getAt(Math.trunc(newPos[0]), Math.trunc(newPos[1]));
+    }
+    else {
+      ccol = controlimage2.getAt(Math.trunc(newPos[0]), Math.trunc(newPos[1]));
+    }
+    if (cars[c].speed !== 0) {
+      if ((!Surface.isColorEqual(ccol, [0, 0, 255])) && (!Surface.isColorEqual(ccol, [255, 0, 0]))) {
+        cars[c].center = newPos;
+      }
+      else {
+        if (c > 0) {
+          if (Surface.isColorEqual(ccol, [0, 0, 255])) {
+            cars[c].angle += 5;
+          }
+          if (Surface.isColorEqual(ccol, [255, 0, 0])) {
+            cars[c].angle -= 5;
+          }
+        }
+        cars[c].speed = cars[c].speed / 1.1;
+      }
+    }
+    if ((c > 0) && (cars[c].speed < (1.8 + (c / 10)))) {
+      cars[c].speed += getRandomInteger(0, 2) / 10;
+      if (crash) {
+        cars[c].angle += ((ccol[1] - 136) / 136) * (2.8 * cars[c].speed);
+      }
+      else {
+        cars[c].angle -= ((ccol[1] - 136) / 136) * (2.8 * cars[c].speed);
+      }
+    }
+    else {
+      cars[c].speed = cars[c].speed / 1.1;
+    }
+  }
+}
+
+function calcNewXY(xy, speed, ang) {
+  return [xy[0] - (speed * Math.cos(ang)),
+          xy[1] - (speed * Math.sin(ang))];
+}
+
+window.addEventListener('load', (event) => {
+  images.LOAD('#imageLoader img');
+  // Non-standard order for Surface
+  screen.set_mode('#screen', '#reset', '#pause');
+  reset();
+  screen.draw.playButton();
+});
+</script>
+</body>
+
+</html>
